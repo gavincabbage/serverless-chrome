@@ -35,7 +35,7 @@ Source: https://groups.google.com/a/chromium.org/d/msg/headless-dev/qqbZVZ2IwEw/
 
 The Lambda environment does not have a tmpfs at `/dev/shm` so Chromium must be edited to avoid using it.
 
-Modify `GetShmemTempDir()` in `base/files/file_util_posix.cc` (starting on line 928 as of this writing) to return `/tmp` instead of `/dev/shm` to avoid an `ERR_INSUFFICIENT_RESOURCES` error when running on Lambda.
+Modify `GetShmemTempDir()` in `base/files/file_util_posix.cc` (starting on line 905 as of this writing) to return `/tmp` instead of `/dev/shm` to avoid an `ERR_INSUFFICIENT_RESOURCES` error when running on Lambda.
 
 ```bool GetShmemTempDir(bool executable, FilePath* path) {
 #if defined(OS_LINUX)
