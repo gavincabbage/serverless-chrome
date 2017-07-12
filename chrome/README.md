@@ -29,7 +29,35 @@ fetch --no-history chromium
 cd src
 ```
 
-**TODO:** add part here about modifying Chrome to not use /dev/shm. See here: https://groups.google.com/a/chromium.org/d/msg/headless-dev/qqbZVZ2IwEw/CPInd55OBgAJ
+### Modify Chrome to not use /dev/shm
+
+Source: https://groups.google.com/a/chromium.org/d/msg/headless-dev/qqbZVZ2IwEw/CPInd55OBgAJ
+
+The Lambda environment does not have a tmpfs at `/dev/shm` so Chromium must be edited to avoid using it.
+
+Modify `GetShmemTempDir()` in `base/files/file_util_posix.cc` (starting on line 928 as of this writing) to return `/tmp` instead of `/dev/shm` to avoid an `ERR_INSUFFICIENT_RESOURCES` error when running on Lambda.
+
+```bool GetShmemTempDir(bool executable, FilePath* path) {
+#if defined(OS_LINUX)
+  bool use_dev_shm = true;
+  if (executable) {
+    static const bool s_dev_shm_executable = DetermineDevShmExecutable();
+    use_dev_shm = s_dev_shm_executable;
+  }
+
+// cuz lambda
+use_dev_shm = false;
+
+  if (use_dev_shm) {
+    *path = FilePath("/dev/shm");
+    return true;
+  }
+#endif
+  return GetTempDir(path);   <--- this parts interesting as it suggests its OK to run Chrome without /dev/shm
+}
+```
+
+### Compile
 
 
 ```bash
@@ -44,7 +72,8 @@ gn gen out/Headless
 ninja -C out/Headless headless_shell
 ```
 
-make the tarball:
+### Make the tarball
+
 ```bash
 mkdir out/headless-chrome && cd out
 cp Headless/headless_shell Headless/libosmesa.so headless-chrome/
